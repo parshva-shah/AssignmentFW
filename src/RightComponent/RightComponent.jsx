@@ -1,6 +1,8 @@
 import { AgGridReact } from "ag-grid-react";
 // import { AgCharts } from "ag-charts-react";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+// import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 import data from "../fwList.json";
 import "./RightComponent.css";
 import { AgCharts } from "ag-charts-react";
@@ -22,6 +24,7 @@ ModuleRegistry.registerModules([
 ]);
 
 const RightComponent = ({ page }) => {
+  const [gridApi, setGridApi] = useState(null);
   const [hide, setHide] = useState({
     Salary: true,
     HireDate: true,
@@ -37,7 +40,40 @@ const RightComponent = ({ page }) => {
     return acc;
   }, {});
 
-  console.log(groupedByYear);
+  const handleUpDown = useCallback(
+    (e) => {
+      const key = e?.key;
+
+      e?.preventDefault();
+
+      let rowIndex = gridApi?.getFocusedCell()?.rowIndex;
+
+      if (key === "ArrowDown") {
+        if (!rowIndex) {
+          return;
+        }
+        const node = gridApi?.getDisplayedRowAtIndex(rowIndex);
+        gridApi?.setFocusedCell(rowIndex);
+        node.setSelected(true);
+      }
+      if (key === "ArrowUp") {
+        if (rowIndex == undefined) {
+          return;
+        }
+        const node = gridApi?.getDisplayedRowAtIndex(rowIndex);
+        gridApi?.setFocusedCell(rowIndex);
+        node.setSelected(true);
+      }
+    },
+    [gridApi]
+  );
+
+  useEffect(() => {
+    if (gridApi) window.addEventListener("keydown", handleUpDown);
+    return () => {
+      window.removeEventListener("keydown", handleUpDown);
+    };
+  }, [gridApi]);
 
   return (
     <div style={{ height: "100%", width: "100%" }}>
@@ -127,6 +163,18 @@ const RightComponent = ({ page }) => {
               rowData={data?.employees}
               pagination={true}
               paginationPageSize={10}
+              rowSelection={{
+                mode: "singleRow",
+                checkboxes: false,
+                enableClickSelection: true,
+              }}
+              onGridReady={(params) => {
+                setGridApi(params.api);
+                let node = params.api.getDisplayedRowAtIndex(0);
+                //params.api.getRowNode(0)
+                node.setSelected(true);
+                params.api.setFocusedCell(0, "firstName");
+              }}
               paginationPageSizeSelector={[10, 20, 50]}
               columnDefs={[
                 {
